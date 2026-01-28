@@ -1,0 +1,29 @@
+version: "3"
+services:
+  vpn-exit:
+    image: qmcgaw/gluetun:latest
+    container_name: vpn-exit
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 127.0.0.1:6215:6215
+    volumes:
+      - ./openvpn:/gluetun/custom:ro
+    environment:
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=openvpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/custom/conf.ovpn
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      
+      # Added back to prevent UDP packet fragmentation in restricted networks
+      - OPENVPN_FLAGS=--tun-mtu 1100 --mssfix 1060
+      
+      - HTTPPROXY=on
+      - HTTPPROXY_LISTENING_ADDRESS=:6215
+      - FIREWALL=off
+      - BLOCK_MALICIOUS=off
+      - HEALTH_RESTART_VPN=off
+    restart: always
