@@ -4,7 +4,7 @@ param(
     [string]$Action,
 
     [Parameter(Mandatory=$false)]
-    [string]$Distro = "Ubuntu"  # Default name if none provided
+    [string]$Distro = "Ubuntu-24.04"  # Default name if none provided
 )
 
 # --- CONFIGURATION ---
@@ -16,7 +16,16 @@ $SsConfig   = "~/vpn_confs/config.json"     # Path inside WSL
 function Get-Status {
     Write-Host "--- Status for $Distro ---" -ForegroundColor Cyan
     
-    # Check OpenVPN
+    # 1. Get WSL IP (ETH0) for Mullvad Bridge
+    $WslIP = wsl -d $Distro -u $WslUser bash -c "ip addr show eth0 | grep 'inet\b' | awk '{print `$2}' | cut -d/ -f1" 2>$null
+    if ($WslIP) {
+        Write-Host "WSL IP:   " -NoNewline; Write-Host "$WslIP" -ForegroundColor Yellow
+        Write-Host "          (Use this IP in Mullvad Bridge Settings)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "WSL IP:   " -NoNewline; Write-Host "NOT FOUND" -ForegroundColor Red
+    }
+
+    # 2. Check OpenVPN
     $tun = wsl -d $Distro -u $WslUser ip addr show tun0 2>$null
     if ($tun -match "inet") { 
         Write-Host "OpenVPN:  " -NoNewline; Write-Host "CONNECTED" -ForegroundColor Green 
@@ -24,7 +33,7 @@ function Get-Status {
         Write-Host "OpenVPN:  " -NoNewline; Write-Host "DISCONNECTED" -ForegroundColor Red 
     }
 
-    # Check Shadowsocks
+    # 3. Check Shadowsocks
     $ss = wsl -d $Distro -u $WslUser pgrep -x ss-server 2>$null
     if ($ss) { 
         Write-Host "Proxy:    " -NoNewline; Write-Host "RUNNING (PID: $ss)" -ForegroundColor Green 
@@ -71,7 +80,13 @@ function Start-Bridge {
 
     # 4. Fix Routes
     Write-Host "Fixing return routes..."
-    wsl -d $Distro -u $WslUser bash -c "ip route add \$(ip route show dev eth0 | grep 'proto kernel' | cut -d ' ' -f 1) dev eth0 2>/dev/null"
+    # Step A: Get the current subnet from WSL (calculated safely)
+    $Subnet = wsl -d $Distro -u $WslUser bash -c "ip route show dev eth0 | grep 'proto kernel' | cut -d ' ' -f 1"
+    
+    # Step B: Ensure the route exists (Suppressing 'File exists' errors)
+    if ($Subnet) {
+        wsl -d $Distro -u $WslUser sudo ip route add $Subnet dev eth0 2>$null
+    }
 
     # 5. Start Shadowsocks
     Write-Host "Starting Shadowsocks..."

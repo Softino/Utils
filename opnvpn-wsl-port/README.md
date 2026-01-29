@@ -114,10 +114,10 @@ Kills the background processes.
 1. Open Mullvad Settings -> **VPN Settings** -> **Bridge Mode**.
 2. Set to **On** -> **Configure Bridge**.
 3. Add a **Custom Bridge**:
+
 * **IP:** Your WSL IP (The script ensures this is reachable).
 * **Port:** `1080` (or whatever is in your json).
 * **Password:** (From your json).
-
 
 4. Connect Mullvad.
 
@@ -135,4 +135,25 @@ To complete your setup, I can help you create the "One-Click" desktop icons ment
 * [Generating a troubleshooting script](http://googleusercontent.com/interactive_content/1)
 * [Adding multi-profile support](http://googleusercontent.com/interactive_content/2)
 
+```
+
+
+### Fix the PowerShell Error
+
+Your system is blocking the script for security reasons. To allow it to run, open your PowerShell terminal and run this single command:
+
+**PowerShell**
+
+```
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+*Press `Y` (Yes) when asked.*
+
+**Alternative:** If you don't want to change the global setting, you can run the script once using the "Bypass" flag:
+
+**PowerShell**
+
+```
+powershell.exe -ExecutionPolicy Bypass -File .\VPN-Manager.ps1 -Action Start
 ```
